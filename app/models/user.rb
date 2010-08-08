@@ -20,22 +20,18 @@ class User < ActiveRecord::Base
   
   validates_presence_of     :name, 
                             :email,
-                            :password, 
-                            :on => :create
+                            :password
                             
-  validates_uniqueness_of   :name, 
-                            :email, 
-                            :on => :create
+  validates_uniqueness_of   :email,
+                            :name
                             
   validates_length_of       :name, 
                             :email, 
                             :password, 
-                            :within => 2..50, 
-                            :on => :create
+                            :within => 2..50
                             
   validates_format_of       :email, 
-                            :with => /\A([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})\Z/i, 
-                            :on => :create
+                            :with => /\A([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})\Z/i
                             
   validates_confirmation_of :password
   
