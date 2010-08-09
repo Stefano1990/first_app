@@ -7,7 +7,7 @@ describe UsersController do
     
     before(:each) do
       @user = Factory(:user)
-      get :show, :id => @user
+      
     end
     
     it "should be successful" do
@@ -15,21 +15,32 @@ describe UsersController do
     end
     
     it "should find the right user" do
+      get :show, :id => @user
       assigns(:user).should == @user
     end
     
     it "should have the right title" do
+      get :show, :id => @user
       response.should have_selector("title", :content => @user.name)
     end
     
     it "should include the user's name" do
+      get :show, :id => @user
       response.should have_selector("h1", :content => @user.name)
     end
     
     it "should have the profile image" do
+      get :show, :id => @user
       response.should have_selector("h1>img", :class => "gravatar")
     end
     
+    it "should show the user's microposts" do
+      mp1 = Factory(:micropost, :user => @user, :content => "Foo bar")
+      mp2 = Factory(:micropost, :user => @user, :content => "Baz quuux")
+      get :show, :id => @user
+      response.should have_selector("span.content", :content => mp1.content)
+      response.should have_selector("span.content", :content => mp2.content)
+    end
   end
 
   describe "GET 'new'" do
@@ -61,7 +72,25 @@ describe UsersController do
     it "should have a confirmation field" do
       response.should have_selector("input[name='user[password_confirmation]'][type='password']")
     end
-  end 
+    
+    describe "for signed in user" do
+      
+      before(:each) do
+        @user = Factory(:user)
+        test_sign_in(@user)
+      end
+      
+      it "should forward the user to his home page" do
+        get :new
+        response.should redirect_to(@user)
+      end
+      
+      it "should display a hint because of restriction" do
+        get :new
+        flash[:notice].should =~ /Page unavailable/i
+      end
+    end
+  end
   
   describe "POST 'create'" do
     
@@ -274,6 +303,11 @@ describe UsersController do
         response.should have_selector("a", :href => "/users?page=2", 
                                            :content => "Next")
       end
+      
+      it "the delete links should not be visible" do
+        get :index
+        response.should_not have_selector("a", :content => "delete")
+      end
     end
   end
   
@@ -301,8 +335,8 @@ describe UsersController do
     
     describe "as an admin user" do
       before(:each) do
-        admin = Factory(:user, :email => "admin@example.com", :name => "Admin User",  :admin => true)
-        test_sign_in(admin)
+        @admin = Factory(:user, :email => "admin@example.com", :name => "Admin User",  :admin => true)
+        test_sign_in(@admin)
       end
       
       it "should destroy the user" do
@@ -314,6 +348,14 @@ describe UsersController do
       it "should redirect to the users page" do
         delete :destroy, :id => @user
         response.should redirect_to(users_path)
+      end
+      
+      it "should NOT let delete themselves(!)" do
+        lambda do
+          delete :destroy, :id => @admin
+          flash[:error].should =~ /You should not delete yourself.../i
+          response.should redirect_to(users_path)
+        end.should_not change(User, :count).by(-1)
       end
     end
   end
